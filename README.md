@@ -1,63 +1,70 @@
 # Evernote Dump
 
-Export extract evernote notes and attachments from .enex files.
+**Evernote Dump** exports and extracts Evernote notes and attachments from .enex files.
 
 All notes and attachments will keep their original file created and accessed dates. Notes will be converted to markdown format. Tags and other embedded information will be formatted and added to the end of each note.
 
 Evernote Dump works by streaming the .enex file through a parser so even extremely large .enex files _should_ work.
 
-# Quick Run
+![Screen Shot](images/screenshot.png)
 
-Windows: Double click the "Evernote Dump.bat"
+## Requirements 
 
-# Installation
+```
+pip install -r requirements.txt
+```
 
-Before running the evernote_dump.py script be sure to install.
+## Running: GUI
 
-> pip install -r requirements.txt
+```
+python evernote_dump.py
+```
 
-# Instructions
-## GUI:
-Run using python 3
+## Running: Command Line
 
-> python main.py
+```
+# For a full list of commands
+python evernote_dump.py -h
 
-## CLI:
-Run using python 3:
+# Dump to current directory
+python evernote_dump.py FILE.enex
 
-> python run_script.py FILE.enex  
+# Batch dump
+python evernote_dump.py *
+```
+A folder will be created for each 'enex' file and the notes and media will be saved in that folder.
 
-or for exporting all enex files in a folder, use:  
+## Exporting Notes from Evernote
 
-> python run_script.py *  
+### Step 1:
 
-it will weed out all other non-enex files. If your system is setup to default to python 2 run using:
+Download [Evernote Desktop](https://evernote.com/download), install the desktop client, and log-in.
 
-> python3 run_script.py FILE.enex
+### Step 2:
 
-All attachments found will be output the the "ENEX-FILE-NAME-ROOT/media" folder as where you called evernote_dump.py .
+Select which Notebook you want to export or All Notes. Select one of the notes and on the menu bar choose [Edit] >> [Select All].
 
-All the files found in the enex files will be put in the folder
+I recommending exporting each Evernote Notebook individually to keep your note structure.
 
-# TODO
+Evernote Dump can handle multiple files at the same time and export each file to its own folder.
 
-- [x] Export Note Attributes
-    - [x] Export Tags
-- [x] Allow multiple files and export to seperate folders.
-- [x] Export all attachements.
-- [x] Keep the modified dates.
-- [x] Keep file names if desired.
-- [x] Make multilingual just for fun.
-    - [x] Add multilingual to processing text.
-- [x] Export actual notes.
-  - [x] Add links to the images that were extracted.
-  - [x] Add resourse attributes.
-- [x] Convert notes to mark down.
-- [x] Add more error check to combat human errors
-- [x] Get rid of cleanup warning.
-- [x] Clean up the code!
+![Select Notes](images/select_all.png)
 
-# Evernote Enex File Map
+### Step 3:
+
+Select [File] >> [Export] from the menu bar.
+
+![Menu](images/menu.png)
+
+### Step 4:
+
+Make sure "Export as a file in ENEX format (.enex)" is selected and click [Export] and choose a directory for exporting.
+
+![Export](images/export_menu.png)
+
+You are now ready to run **Evernote Dump**.
+
+## Evernote Enex File Map
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

@@ -1,4 +1,2 @@
 html2text
-kivy.deps.sdl2
-kivy.deps.glew
-kivy
+bs4

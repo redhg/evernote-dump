@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-###########
-# IMPORTS #
-###########
-
-import sys
 import os
-import xml.sax  # Steaming XML data for use with larger files
+from xml.sax import ContentHandler
+
+from utilities.settings import Settings
 from .note import Note, Attachment
-from .helpers import is_yes_no, choose_language, lang, is_python_three
 
 
-global keep_file_names
-keep_file_names = True
+class NoteParser(ContentHandler):
+    """
+    Handles all lines of the enex file in a streaming manner.
+    Large files can be parsed since it is not loaded to memory.
 
-##########################
-# Note Handler Functions #
-##########################
+    :param current_file
+    :param settings: Settings is a custom class to pass application wide settings.
+    :param print_fun: func Pass in a callback function that will be passed a string for printing
+        and disable printing to console.
+    """
 
+    def __init__(self, current_file, settings: Settings, print_func=None):
+        super().__init__()
+        self.settings = settings
+        self.print_func = print_func
 
-class NoteHandler(xml.sax.ContentHandler):
-    def __init__(self, current_file, path=""):
-        super(NoteHandler, self).__init__()
         self.current_file = current_file
 
         self.CurrentData = ""
@@ -30,20 +30,23 @@ class NoteHandler(xml.sax.ContentHandler):
         self.in_resource_attributes = False
         self.note = None
         self.attachment = None
-        self.path = path
+        self.path = settings.export_path
 
-    ######################
-    # ELEMENT READ START #
-    ######################
+    def print_message(self, message: str):
+        if self.print_func:
+            self.print_func(message)
+        else:
+            print(message)
+
     def startElement(self, tag, attributes):
         """ Called when a new element is found """
         self.CurrentData = tag
         if tag == "en-export":  # First tag found in .enex file
-            print("\n####%s####" % (lang("_export_started")))
+            self.print_message("\n####EXPORT STARTED####")
         elif tag == "note":  # New note found
             self.note = Note()
             self.note.set_path(os.path.join(self.path, self.current_file))
-        elif tag == "data":  # Found an attachment
+        elif tag == "resource":  # Found an attachment
             self.attachment = Attachment()
             self.attachment.set_path(os.path.join(self.path, self.current_file))
             self.attachment.set_created_date(self.note.get_created_date())
@@ -53,37 +56,32 @@ class NoteHandler(xml.sax.ContentHandler):
             self.in_note_attributes = True
         elif tag == "resource-attributes":
             self.in_resource_attributes = True
-    
-    #######################
-    # ELEMENT READ FINISH #
-    #######################
+
     def endElement(self, tag):
+        """Called at the end of an element"""
         if tag == "title":
-            print("\n%s: %s" % ( lang('_note_processing'), self.note.get_title()))
+            self.print_message(f"\nProcessing Note: {self.note.get_title()}")
         elif tag == "content":
             pass
         elif tag == "resource":
-            print("---%s: %s" % (lang('_exporting_attachment'), self.attachment.get_filename()))
+            self.print_message(f"---Exporting Attachment: {self.attachment.get_filename()}")
             try:
-                self.attachment.finalize(keep_file_names)
+                self.attachment.finalize(self.settings.preserve_file_names)
             except NameError:
                 self.attachment.finalize(True)
             self.in_resource_attributes = False
         elif tag == "data":
             self.note.add_attachment(self.attachment)
-        elif tag == "note": # Last tag called before starting a new note
-            # TODO ask user if they want to use qownnotes style. i.e. make attachment links "file://media/aldskfj.png"
-            print("---%s: %s" % (lang('_exporting_note'), self.note.get_filename()))
+        elif tag == "note":  # Last tag called before starting a new note
+            self.print_message(f"---Exporting Note: {self.note.get_filename()}")
             self.note.finalize()
         elif tag == "note-attributes":
             self.in_note_attributes = False
         elif tag == "en-export":  # Last tag closed in the whole .enex file
-            print("\n####%s####\n" % (lang('_export_finished')))
+            self.print_message("\n####EXPORT FINISHED####\n")
 
-    #######################
-    # CONTENT STREAM READ #
-    #######################
     def characters(self, content_stream):
+        """Content Stream"""
         if self.CurrentData == "title":
             self.note.set_title(content_stream)
         elif self.CurrentData == "content":
@@ -100,43 +98,8 @@ class NoteHandler(xml.sax.ContentHandler):
             self.attachment.set_mime(content_stream)
         elif self.CurrentData == "file-name":
             self.attachment.set_filename(content_stream)
-        
+
         if self.in_note_attributes:
             self.note.add_found_attribute(self.CurrentData, content_stream)
         if self.in_resource_attributes:
             self.attachment.add_found_attribute(self.CurrentData, content_stream)
-
-
-def run_parse(args, path=""):
-    # create an XMLReader
-    parser = xml.sax.make_parser()
-
-    # turn off namespaces
-    parser.setFeature(xml.sax.handler.feature_namespaces, 0)
-
-    # override the default ContextHandler
-    for i in range(0, len(args)):
-        # pass in first argument as input file.
-        if ".enex" in args[i]:
-            base = os.path.basename(args[i])
-            current_file = base.replace(".enex", "")
-            handler = NoteHandler(current_file, path)
-            parser.setContentHandler(handler)
-            # try:
-            parser.parse(args[i])
-            # except Exception:
-            #     print(args[i] + " was unable to be parsed correctly.")
-
-
-def main(args):
-
-    if not is_python_three():
-        print("Please use Python version 3")
-        sys.exit()
-
-    # INIT Request user input
-    choose_language()
-    global keep_file_names
-    keep_file_names = is_yes_no('_keep_file_names_q')
-
-    run_parse(args)
